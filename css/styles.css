@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');
+
+body {
+	background-color: black;
+}
+
+fieldset {
+	margin: 0.5em;
+}
+
+fieldset > label {
+	margin: 0.5em;
+}
+
+#button-container {
+	position: absolute;
+	right: 5px;
+}
+
+#logo-container {
+	text-align: center;
+}
+
+#logo {
+	padding: 0px 10px 0px 10px;
+/*
+	display: inline-block;
+	margin: 0 auto;
+*/
+	font-family: Montserrat;
+	font-size: 50px;
+	color: white;
+	background-color: black;
+	text-shadow: -3px -3px grey;
+}
+
+#logo .first {
+	font-size: 70px;
+}
+
+#logo .red {
+	color: #ed1c24;
+}
+
+#grid {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 14px;
+	border-collapse: collapse;
+	width: 100%;
+	line-height: 8px;
+}
+
+#grid td, #grid th {
+	border: 1px solid #888888;
+	border-right: 2px solid black;
+	border-left: 2px solid black;
+	padding: 5px;
+	text-align: center;
+}
+
+#grid th {
+	padding-top: 12px;
+	padding-bottom: 12px;
+	background-color: #ed1c24;
+	color: white;
+}
+/*
+#grid tr:nth-child(even){
+	background-color: #dddddd;
+}
+
+#grid tr:nth-child(odd){
+	background-color: white;
+}
+*/
+
+#grid tr {
+	background-color: white;
+}
+
+#grid tr.header {
+	border-top: 2px solid black;
+	border-bottom: 2px solid black;
+	width: 100%;
+	background-color: #ffff88;
+	font-weight: bold;
+}
+
+#grid tr.header>td {
+	border: none;
+}
+
+#grid .cards {
+/*	width: 120px;*/
+	text-align: left;
+	border-right: 2px solid black;
+}
+
+#grid .empty-cards {
+/*	width: 120px;*/
+	text-align: left;
+	border-right: 2px solid black;
+	background-color: lightsalmon;
+}
+
+#grid .missing-cards {
+/*	width: 120px;*/
+	text-align: left;
+	border-right: 2px solid black;
+	text-decoration: line-through;
+	background-color: lightsalmon;
+}
+
+
+#grid .green {
+	background-color: lightgreen;
+}
+
+#grid .red {
+	background-color: lightsalmon;
+}
+
+#grid th.cards {
+	background-color: grey;
+	visibility: hidden;
+	border: none;
+}
+
+#grid td:empty::after{
+	content: "\00a0";
+}
+
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+
