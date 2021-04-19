@@ -12,9 +12,19 @@ fieldset > label {
 	margin: 0.5em;
 }
 
-#button-container {
+#buttons-container {
 	position: absolute;
 	right: 5px;
+	display: flex;
+	flex-direction: column;
+}
+
+.top-div {
+	flex 1;
+}
+
+.botton-div {
+	flex: 1;
 }
 
 #logo-container {
@@ -41,6 +51,31 @@ fieldset > label {
 #logo .red {
 	color: #ed1c24;
 }
+
+#content-container {
+	display: flex;
+ 	flex-direction: row;
+}
+
+.left-div {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+}
+
+.right-div {
+	flex: 1;
+	display: none;
+}
+
+#rounds-container {
+	flex: 1;
+}
+
+#log-container {
+	flex: 1;
+}
+
 
 #grid {
 	font-family: Arial, Helvetica, sans-serif;
@@ -120,6 +155,10 @@ fieldset > label {
 	background-color: lightsalmon;
 }
 
+#grid .yellow-text {
+	color: yellow;
+}
+
 #grid th.cards {
 	background-color: grey;
 	visibility: hidden;
@@ -129,6 +168,41 @@ fieldset > label {
 #grid td:empty::after{
 	content: "\00a0";
 }
+
+#rounds {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 14px;
+	border-collapse: collapse;
+	width: 100%;
+	line-height: 8px;
+}
+
+#rounds td, #rounds th {
+	border: 1px solid #888888;
+	border-right: 2px solid black;
+	border-left: 2px solid black;
+	padding: 5px;
+	text-align: center;
+}
+
+#rounds th {
+	padding-top: 12px;
+	padding-bottom: 12px;
+	background-color: #ed1c24;
+	color: white;
+}
+
+#log {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 14px;
+	border-collapse: collapse;
+	width: 100%;
+	line-height: 8px;
+	background-color: #ed1c24;
+	color: white;
+}
+
+
 
 .noselect {
   -webkit-touch-callout: none; /* iOS Safari */

@@ -12,18 +12,45 @@
 		<script src="js/cluedo.js"></script>
 	</head>
 	<body>
-		<div id="button-container">
-			<div id="dialog-container"></div>
-			<button id="next-button" class="ui-button ui-corner-all ui-widget">
-				Start
-			</button>
+		<div id="buttons-container">
+			<div class="top-div">
+				<div id="dialog-container"></div>
+				<button id="next-button">
+					Start
+				</button>
+			</div>
+<!--			<div class="bottom-div">
+				<label for="toggleInfo">Show info</label>
+				<input type="checkbox" id="toggleInfo"/>
+			</div>
+-->
 		</div>
 		<div id="logo-container">
 			<div id="logo" class="noselect">
 				<span class="first">C</span>L<span class="red">U</span>EDO <span class="first">S</span>OLVER
 			</div>
 		</div>
-		<div id="container">
+		<div id="content-container">
+			<div class="left-div">
+				<div id="grid-container">
+				</div>
+			</div>
+			<div class="right-div">
+				<div id="rounds-container">
+					<table id="rounds">
+						<tr>
+							<th>Rounds</th>
+						</tr>
+					</table>
+				</div>
+				<div id="log-container">
+					<table id="rounds">
+						<tr>
+							<th>Log</th>
+						</tr>
+					</table>
+				</div>
+			</div>
 		</div>
 	</body>
 </html>

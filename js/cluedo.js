@@ -12,12 +12,12 @@ var cards = []
 for (var i = 0; i < card_names.length; i++) {
 	cards[i] = []
 	for (var j = 0; j < card_names[i][1].length; j++) {
-		cards[i][j] = true;
+		cards[i][j] = null;
 	}
 }
 
 //var players = [];
-var players = [ 'Player 1', 'Player 2', 'Player 3', 'Player 4', 'Player 5', 'Player 6' ];
+var players = [ 'Alex', 'Barry', 'Carl', 'Darren' ];
 
 var me;
 var grid_array;
@@ -25,7 +25,9 @@ var grid_array;
 var newGame = true;
 var current_player;
 var num_positive_answers = [];
-var answers = [];
+var rounds = [];
+var round;
+var hand_size;
 
 function showOptionButtonsDialog(title, message, width, options) {
 
@@ -198,7 +200,11 @@ function updateTable() {
 	html += '<tr>\n';
 	html += '<th class="cards" style="width:15%;">Cards</th>\n';
 	for (var i = 0; i < players.length; i++) {
-		html += '<th style="width:' + 85 / players.length + '%">' + players[i] + '</th>\n';
+		if (i == me) {
+			html += '<th style="width:' + 85 / players.length + '%" class="yellow-text">' + players[i] + '</th>\n';
+		} else {
+			html += '<th style="width:' + 85 / players.length + '%">' + players[i] + '</th>\n';
+		}
 	}
 	html += '</tr>\n';
 
@@ -208,22 +214,22 @@ function updateTable() {
 		for (var k = 0; k < players.length; k++ ){ html += '<td></td>\n'; }
 		html += '</tr>\n';
 		for (var j = 0; j < cards[i].length; j++) {
-			if (cards[i][j] == true) {
+			if (cards[i][j] === null) {
 				html += '<tr><td class="cards">' + card_names[i][1][j] + '</td>';
-			} else if (cards[i][j] == null) {
-				html += '<tr><td class="missing-cards">' + card_names[i][1][j] + '</td>';
-			} else {
+			} else if (cards[i][j] === false) {
 				html += '<tr><td class="empty-cards"></td>';
+			} else if (cards[i][j] === true) {
+				html += '<tr><td class="green cards">' + card_names[i][1][j] + '</td>';
+			} else {
+				html += '<tr><td class="missing-cards">' + card_names[i][1][j] + '</td>';
 			}
 			for (var k = 0; k < players.length; k++ ) {
-				if (grid_array[k][i][j] == null) {
+				if (grid_array[k][i][j] === null) {
 					html += '<td></td>';
-				} else if (grid_array[k][i][j] == false) {
+				} else if (grid_array[k][i][j] === false) {
 					html += '<td class="red"></td>';
-				} else if (typeof(grid_array[k][i][j]) == 'number') {
-					var xi = Math.floor(grid_array[k][i][j] / 10);
-					var xj = grid_array[k][i][j] % 10;
-					html += '<td class="green">' + card_names[xi][1][xj] + '</td>';
+				} else if (grid_array[k][i][j] === true) {
+					html += '<td class="green">' + card_names[i][1][j] + '</td>';
 				} else {
 					html += '<td>' + grid_array[k][i][j].join(' ') + '</td>';
 				}
@@ -233,7 +239,7 @@ function updateTable() {
 	}
 
 	// Update table
-	$('#container').html(html);
+	$('#grid-container').html(html);
 	
 }
 
@@ -245,7 +251,7 @@ function selectMissingCards(selected) {
 		for (var k = 0; k < players.length; k++) {
 			grid_array[k][i][j] = false;
 		}
-		cards[i][j] = null;
+		cards[i][j] = "missing";
 	}
 
 	// Update table
@@ -258,12 +264,19 @@ function selectMissingCards(selected) {
 
 function selectStartingCards(selected) {
 
+	// Calculate size of player's hand
+
+	hand_size = 0;
+
+	// Record the cards I have (which nobody else has)
+
 	for (var idx = 0; idx < selected.length; idx++) {
 		var i = selected[idx][0];
 		var j = selected[idx][1];
 		for (var k = 0; k < players.length; k++) {
 			if (k == me) {
-				grid_array[k][i][j] = 10*i+j;
+				hand_size += 1;
+				grid_array[k][i][j] = true;
 			} else {
 				grid_array[k][i][j] = false;
 			}
@@ -271,8 +284,13 @@ function selectStartingCards(selected) {
 		cards[i][j] = false;
 	}
 
-	// Update table
-//	updateTable();
+	// Update my hand (I don't own any other cards)
+
+	applyPlayerLogic(me);
+
+	// Update the HTML table
+
+	updateTable();
 
 	// Next
 
@@ -309,7 +327,7 @@ function chooseStartingCards() {
 	for (var i = 0; i < cards.length; i++) {
 		options[i] = [card_names[i][0], []]
 		for (var j = 0; j < cards[i].length; j++) {
-			if (cards[i][j] != null) {
+			if (cards[i][j] !== "missing") {
 				options[i][1].push([card_names[i][1][j], [i,j]]);
 			}
 		}
@@ -339,7 +357,12 @@ function startingPlayer(i) {
 		$('#dialog-container').html('');
 
 		// Update label
-		$('#next-button').html(players[current_player] + "'s round");
+		if (current_player == me) {
+			var label = 'Your round';
+		} else {
+			var label = players[current_player] + "'s round";
+		}
+		$('#next-button').html(label);
 
 		// Update table
 		updateTable();
@@ -367,8 +390,8 @@ function nextRound() {
 
 	var options = [
 		['Moving on board', movingPiece()],
-		['Making a suggestion', makingSuggestion()],
-		['Making an accusation', makingAccusation()]
+		['Making a suggestion', makingSuggestion()]
+//		['Making an accusation', makingAccusation()]
 	];
 
 	if (current_player == me) {
@@ -409,6 +432,8 @@ function makingSuggestion() {
 		$('#dialog').dialog('destroy');
 		$('#dialog-container').html('');
 
+		round = [];
+
 		var options = [];
 
 		for (var i = 0; i < cards.length; i++) {
@@ -437,6 +462,8 @@ function suggestingCards(selected) {
 	$('#dialog').dialog('destroy');
 	$('#dialog-container').html('');
 
+	$.merge(round,[current_player, selected]);
+
 	askPlayer(selected, (current_player + 1) % players.length);
 
 }
@@ -455,6 +482,10 @@ function askPlayer(suggestion, asking_player) {
 
 	} else {
 
+		// Asked everybody
+
+		addRound();
+
 		nextPlayer();
 
 	}
@@ -468,7 +499,7 @@ function playerShowedCard(suggestion, asking_player, answer) {
 		$('#dialog').dialog('destroy');
 		$('#dialog-container').html('');
 
-		if (answer == true) {
+		if (answer === true) {
 
 			if (current_player == me) {
 
@@ -482,7 +513,9 @@ function playerShowedCard(suggestion, asking_player, answer) {
 
 			} else {
 
-				add_answer(current_player, asking_player, suggestion, true);
+				round.push(answer);
+
+				addRound();
 
 				nextPlayer();
 
@@ -490,7 +523,8 @@ function playerShowedCard(suggestion, asking_player, answer) {
 
 		} else {
 
-			add_answer(current_player, asking_player, suggestion, false);
+			round.push(answer);
+
 			askPlayer(suggestion, (asking_player + 1) % players.length);
 
 		}
@@ -506,7 +540,9 @@ function playerShowedMeCard(asking_player, card) {
 		$('#dialog').dialog('destroy');
 		$('#dialog-container').html('');
 
-		add_answer(current_player, asking_player, card, null);
+		round.push(card);
+
+		addRound();
 
 		nextPlayer();
 
@@ -528,56 +564,287 @@ function nextPlayer() {
 
 }
 
-function add_answer(questioner, questioned, suggestion, answer) {
+function addRound() {
 
-	answers.push([questioner, questioned, suggestion, answer]);
+	rounds.push(round);
 
-	if (answer == true) {
+	var questioner = round[0];
+	var suggestion = round[1];
 
-		// Showed another player one of the cards
+	for (var a = 0; a < round.length - 2; a++) {
 
-		num_positive_answers[questioned] += 1;
-		for (var x = 0; x < suggestion.length; x++ ) {
+		var questioned = (questioner + 1 + a) % players.length;
+		var answer = round[2 + a];
 
-			var i = suggestion[x][0];
-			var j = suggestion[x][1];
+		if (answer === true) {
 
-			if (grid_array[questioned][i][j] == null) {
+			// Showed another player one of their cards
 
-				grid_array[questioned][i][j] = [num_positive_answers[questioned]];
+			num_positive_answers[questioned] += 1;
+			for (var x = 0; x < suggestion.length; x++ ) {
 
-			} else if (typeof(grid_array[questioned][i][j]) == 'object') {
+				var i = suggestion[x][0];
+				var j = suggestion[x][1];
 
-				grid_array[questioned][i][j].push(num_positive_answers[questioned]);
+				if (grid_array[questioned][i][j] === null) {
+
+					grid_array[questioned][i][j] = [num_positive_answers[questioned]];
+
+				} else if (Array.isArray(grid_array[questioned][i][j])) {
+
+					grid_array[questioned][i][j].push(num_positive_answers[questioned]);
+
+				}
+
+			}
+
+		} else if (answer === false) {
+
+			// Didn't show a card
+
+			for (var x = 0; x < suggestion.length; x++ ) {
+
+				var i = suggestion[x][0];
+				var j = suggestion[x][1];
+
+				// Check for contradictions (e.g. already true)
+
+				if (grid_array[questioned][i][j] === true) {
+
+					console.log(players[questioned] + ' seems to be lying about not having ' + card_names[i][1][j]);
+
+				}
+
+				grid_array[questioned][i][j] = false;
+
+			}
+
+		} else {
+
+			// Showed me a specific card
+
+			var i = answer[0];
+			var j = answer[1];
+			grid_array[questioned][i][j] = true;
+
+		}
+
+	}
+
+	// Apply logic to deduce cards
+
+	applyLogic();
+
+	// Update HTML table
+
+	updateTable();
+
+}
+
+function applyPlayerLogic(player) {
+
+
+	// Count number of player's known, unknown and positive answer cards
+
+	var known_count = 0;
+	var unknown_count = 0;
+	var positive_answers_count = new Array(num_positive_answers[player]).fill([]);
+
+	for (var i = 0; i < cards.length; i++) {
+
+		for (var j = 0; j < cards[i].length; j++) {
+
+			if (grid_array[player][i][j] === true) {
+
+				// Player definitely has this card
+
+				known_count += 1;
+
+			} else if (grid_array[player][i][j] === false) {
+
+				// Player definitely doesn't have this card
+
+				unknown_count += 1;
+
+			} else if (Array.isArray(grid_array[player][i][j])) {
+
+				for (x = 0; x < grid_array[player][i][j].length; x++) {
+
+					// Player potentially showed this card
+
+					var answer_number = grid_array[player][i][j][x];
+					positive_answers_count[answer_number - 1].push([i,j]);
+
+				}
 
 			}
 
 		}
 
-	} else if (answer == false) {
+	}
 
-		// Didn't show a card
+	// We know all the player's cards
 
-		for (var x = 0; x < suggestion.length; x++ ) {
+	if (known_count == hand_size) {
 
-			var i = suggestion[x][0];
-			var j = suggestion[x][1];
+		for (var i = 0; i < cards.length; i++) {
 
-			grid_array[questioned][i][j] = false;
+			for (var j = 0; j < cards[i].length; j++) {
+
+				if (grid_array[player][i][j] !== true) {
+
+					// They can't have any more cards
+
+					grid_array[player][i][j] = false;
+
+				}
+
+			}
 
 		}
 
-	} else {
+	// We know all the cards the player does not have
 
-		// Showed me a specific card
+	} else if (unknown_count == cards.length - known_count) {
 
-		var i = suggestion[0];
-		var j = suggestion[1];
-		grid_array[questioned][i][j] = 10*i+j;
+		for (var i = 0; i < cards.length; i++) {
+
+			for (var j = 0; j < cards[i].length; j++) {
+
+				if (grid_array[player][i][j] !== false) {
+
+					// They must have all remaining cards
+
+					grid_array[player][i][j] = true;
+
+					// which are not hidden
+
+					cards[i][j] = false;
+
+					// and nobody else has them
+
+					for (var k = 0; k < players.length; k++) {
+
+						if (k != player) {
+
+							grid_array[k][i][j] = false;
+
+						}
+
+					}
+
+				}
+
+			}
+
+		}
 
 	}
 
-	updateTable();
+	// Check for a single remaining option from a positive answer round
+
+	for (var x = 0; x < positive_answers_count.length; x++) {
+
+		if (positive_answers_count[x].length == 1) {
+
+			// Player must have this card
+
+			var i = positive_answers_count[x][0][0];
+			var j = positive_answers_count[x][0][1];
+
+			grid_array[player][i][j] = true;
+
+			// so it's not hidden
+
+			cards[i][j] = false;
+
+			// and nobody else has it
+
+			for (var k = 0; k < players.length; k++) {
+
+				if (k != player) {
+
+					grid_array[k][i][j] = false;
+
+				}
+
+			}
+
+		}
+
+	}
+
+	// Other checks?
+	// Check for non-overlapping positive answers (could potentially eliminate other cards)
+
+}
+
+function applyCardLogic(i,j) {
+
+	// Count how many players don't have this card
+
+	var not_owned_count = 0;
+
+	for (var k = 0; k < players.length; k++) {
+
+		if (grid_array[k][i][j] === false) {
+
+			not_owned_count += 1;
+
+		}
+
+	}
+
+	// The card is in the game and nobody has it
+
+	if (cards[i][j] === null && not_owned_count == players.length) {
+
+		// Must be one of the hidden cards
+
+		cards[i][j] = true;
+
+	// The card is in the game, not one of the hidden cards and all but one players don't have it
+
+	} else if (cards[i][j] === false && not_owned_count == players.length - 1) {
+
+		// The remaining player must have it
+
+		for (var k = 0; k < players.length; k++) {
+
+			if (grid_array[k][i][j] !== false) {
+
+				grid_array[k][i][j] = true;
+				break;
+
+			}
+
+		}
+
+	}
+
+}
+
+function applyLogic() {
+
+	// Apply logical deductions for each player
+
+	for (var k = 1; k < players.length; k++) {
+
+		applyPlayerLogic((me + k) % players.length);
+
+	}
+
+	// Apply logical deductions for each card
+
+	for (var i = 0; i < cards.length; i++) {
+
+		for (var j = 0; j < cards[i].length; j++) {
+
+			applyCardLogic(i,j);
+
+		}
+
+	}
 
 }
 
@@ -645,8 +912,19 @@ function startGame() {
 
 $(document).ready(function() {
 
+	$('#next-button').button();
 	$('#next-button').click(function() {
 		nextFunction();
 	});
+
+	$('#toggleInfo').button();
+	$('#toggleInfo').click(function() {
+		if ($('#toggleInfo')[0].checked == true) {
+			$('.right-div').css('display', 'block');
+		} else {
+			$('.right-div').css('display', 'none');
+		}
+	});
+
 });
 
