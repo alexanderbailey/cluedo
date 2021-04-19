@@ -16,8 +16,8 @@ for (var i = 0; i < card_names.length; i++) {
 	}
 }
 
-//var players = [];
-var players = [ 'Alex', 'Barry', 'Carl', 'Darren' ];
+var players = [];
+//var players = [ 'Alex', 'Barry', 'Carl', 'Darren' ];
 
 var me;
 var grid_array;
@@ -889,7 +889,7 @@ function startGame() {
 //	audio.play();
 
 	// Input players
-//	inputPlayers();
+	inputPlayers();
 
 	if (players.length == 0) {
 		newGame = true;
