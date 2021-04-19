@@ -912,7 +912,6 @@ function startGame() {
 
 $(document).ready(function() {
 
-	$('#next-button').button();
 	$('#next-button').click(function() {
 		nextFunction();
 	});
