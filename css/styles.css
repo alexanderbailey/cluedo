@@ -25,6 +25,7 @@ fieldset > label {
 
 .botton-div {
 	flex: 1;
+	display: none;
 }
 
 #logo-container {
@@ -64,12 +65,13 @@ fieldset > label {
 }
 
 .right-div {
-	flex: 1;
+	flex: 0.7;
 	display: none;
+	flex-direction: column;
 }
 
 #rounds-container {
-	flex: 1;
+	flex: 0.8;
 }
 
 #log-container {
@@ -175,6 +177,7 @@ fieldset > label {
 	border-collapse: collapse;
 	width: 100%;
 	line-height: 8px;
+	height: 100%;
 }
 
 #rounds td, #rounds th {
@@ -182,7 +185,6 @@ fieldset > label {
 	border-right: 2px solid black;
 	border-left: 2px solid black;
 	padding: 5px;
-	text-align: center;
 }
 
 #rounds th {
@@ -190,6 +192,41 @@ fieldset > label {
 	padding-bottom: 12px;
 	background-color: #ed1c24;
 	color: white;
+}
+
+#rounds-cell {
+	background-color: #e0f0f0;
+	height: 100%;
+	vertical-align: top;
+	text-align: left;
+	padding: 0px !important;
+}
+
+#rounds-table {
+	width: 100%;
+}
+
+#rounds-table th {
+	padding-top: 5px;
+	padding-bottom: 5px;
+	width: 100%;
+	background-color: #ffff88;
+	font-weight: bold;
+	color: black;
+}
+
+#rounds-table tr.header>td {
+	border: none;
+}
+
+#rounds-container table {
+	padding: 5px;
+	border-collapse: collapse;
+}
+
+#rounds-div {
+	height: 100%;
+	overflow: auto;
 }
 
 #log {
@@ -200,9 +237,62 @@ fieldset > label {
 	line-height: 8px;
 	background-color: #ed1c24;
 	color: white;
+	height: 100%;
 }
 
+#log-cell {
+	background-color: #e0f0f0;
+	height: 100%;
+	vertical-align: top;
+	text-align: left;
+}
 
+#log-div {
+	font-family: monospace;
+	line-height: normal;
+	white-space: pre;
+	overflow: auto;
+	height: 100%;
+}
+
+#sliders {
+	display: flex;
+	flex-flow: row wrap;
+}
+
+.custom-label {
+	width: 20%;
+	margin-top: 3%;
+}
+
+.custom-slider {
+	width: 70%;
+	margin-top: 3%;
+	margin-bottom: 3%;
+}
+
+.custom-handle {
+	border-radius: 15px;
+	width: 3em !important;
+	height: 1.6em !important;
+	top: 50% !important;
+	margin-top: -.8em;
+	text-align: center;
+	line-height: 1.6em;
+	outline: none;
+}
+
+#sliders-total-container {
+	float: right;
+}
+
+#sliders-total {
+	font-weight: bold;
+}
+
+.total-error {
+	color: #ed1c24;
+}
 
 .noselect {
   -webkit-touch-callout: none; /* iOS Safari */

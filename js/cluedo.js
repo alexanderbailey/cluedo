@@ -1,5 +1,7 @@
 "use strict";
 
+// ############## DECLARE VARIABLES ##############
+
 // Declare card names for each category
 var card_names = [
 	[ 'Rooms', [ 'Ballroom', 'Billiard Room', 'Conservatory', 'Dining Room', 'Hall', 'Kitchen', 'Library', 'Lounge', 'Study' ] ],
@@ -7,19 +9,22 @@ var card_names = [
 	[ 'Suspects', [ 'Green', 'Mustard', 'Orchid', 'Peacock', 'Plum', 'Scarlett' ] ]
 ];
 
-// Initialise status of all cards
-var cards = []
+// Initialise game settings object
+var game_settings = new Object();
+
+// First column (row headers)
+var cards;
+
+// Number of rows
+var num_cards = 0;
 for (var i = 0; i < card_names.length; i++) {
-	cards[i] = []
-	for (var j = 0; j < card_names[i][1].length; j++) {
-		cards[i][j] = null;
-	}
+	num_cards += card_names[i][1].length;
 }
 
-var players = [];
-//var players = [ 'Alex', 'Barry', 'Carl', 'Darren' ];
+// The rest of the columns (players)
+//game_settings.players = [ 'Adam', 'Boaz', 'Cyrus', 'Darius', 'Elijah', 'Felix' ];
 
-var me;
+// Grid for the status of all the cells
 var grid_array;
 
 var newGame = true;
@@ -27,12 +32,105 @@ var current_player;
 var num_positive_answers = [];
 var rounds = [];
 var round;
-var hand_size;
+
+
+
+// ########## DIALOG FUNCTIONS ##########
+
+function clearDialog() {
+
+	$('#dialog').dialog('destroy');
+	$("#dialog-container").html('');
+
+}
+
+function showSliderDialog(title, width, callback, options) {
+
+	clearDialog();
+
+	var html = '<div id="dialog">';
+	html += '<div id="sliders">';
+	for (var c = 0; c < options.length; c++ ) {
+		html += '<div class="custom-label">' + options[c][0] + '</div>';
+		html += '<div class="custom-slider" id="slider-' + c + '" data-index=' + c + '>';
+		html += '<div class="custom-handle ui-slider-handle"></div>'
+		html += '</div>';
+	}
+	html += '</div>';
+	html += '<div id="sliders-total-container">Total: <span id="sliders-total"></span></div>';
+	html += '</div>';
+	$('#dialog-container').html(html);
+	var total = 0
+	$('.custom-slider').each(function() {
+		var handle = $(this).find('div');
+		var value = options[$(this).data('index')][1];
+		total += value;
+		var min = options[$(this).data('index')][2];
+		var max = options[$(this).data('index')][3];
+		$(this).slider({
+			create: function() {
+				handle.text($(this).slider('value'));
+			},
+			slide: function(event, ui) {
+				handle.text(ui.value);
+			},
+			change: function(event, ui) {
+				var t = 0;
+				$('.custom-slider').each(function() {
+					t += $(this).slider('value');
+				});
+				$('#sliders-total').text(t + ' / ' + num_cards);
+				if (t > num_cards) {
+					$('#dialog').next().find('button:contains("OK")').button('disable');
+					$('#sliders-total').addClass('total-error');
+				} else {
+					$('#dialog').next().find('button:contains("OK")').button('enable');
+					$('#sliders-total').removeClass('total-error');
+				}
+			},
+			range: "min",
+			value: value,
+			min: min,
+			max: max
+		});
+	});
+
+	$('#dialog').dialog({
+		title: title,
+		modal: true,
+		buttons: [{
+			text: 'OK',
+			click: function () {
+				var selected = [];
+				$('.custom-slider').each(function() {
+					selected.push($(this).slider('value'));
+				});
+				clearDialog();
+				callback(selected);
+			}
+		}],
+		width: width
+	});
+
+	$('#slider-' + game_settings.me).slider('disable');
+	$('#sliders-total').text(total + ' / ' + num_cards);
+	if (total > num_cards) {
+		$('#dialog').next().find('button:contains("OK")').button('disable');
+		$('#sliders-total').addClass('total-error');
+	} else {
+		$('#dialog').next().find('button:contains("OK")').button('enable');
+		$('#sliders-total').removeClass('total-error');
+	}
+
+	$("#dialog").dialog("open");
+
+}
 
 function showOptionButtonsDialog(title, message, width, options) {
 
+	clearDialog();
+
 	var html = '<div id="dialog">' + message + '</div>';
-//	$("#dialog-container").append(html);
 	$("#dialog-container").html(html);
 
 	var buttons = []
@@ -56,6 +154,8 @@ function showOptionButtonsDialog(title, message, width, options) {
 }
 
 function showRadioDialog(title, width, callback, options) {
+
+	clearDialog();
 
 	var html = '<div id="dialog">';
 	html += '<div id="radioinput">';
@@ -87,8 +187,7 @@ function showRadioDialog(title, width, callback, options) {
 				$('#dialog :radio:checked').each(function() {
 					selected.push($(this).data('index'));
 				});
-				$(this).dialog('destroy');
-				$("#dialog-container").html('');
+				clearDialog();
 				callback(selected);
 			}
 		}],
@@ -110,7 +209,9 @@ function showRadioDialog(title, width, callback, options) {
 }
 
 
-function showCheckboxDialog(title, width, callback, options) {
+function showCheckboxDialog(title, width, callback, options, expected = 0) {
+
+	clearDialog();
 
 	var html = '<div id="dialog">';
 	html += '<div class="widget">';
@@ -129,7 +230,7 @@ function showCheckboxDialog(title, width, callback, options) {
 	html += '</div>';
 	html += '</div>';
 	$("#dialog-container").html(html);
-	$('input').checkboxradio();
+	$('#dialog input').checkboxradio();
 	$('#dialog').dialog({
 		title: title,
 		modal: true,
@@ -137,55 +238,49 @@ function showCheckboxDialog(title, width, callback, options) {
 			text: 'OK',
 			click: function () {
 				var selected = [];
-				$(':checkbox:checked').each(function() {
+				$('#dialog :checkbox:checked').each(function() {
 					selected.push($(this).data('index'));
 				});
-				$(this).dialog('destroy');
-				$("#dialog-container").html('');
+				clearDialog();
 				callback(selected);
 			}
 		}],
 		width: width
 	});
 
+	// Expected number of selected boxes
+	if (expected != 0) {
+		if ($('#dialog :checkbox:checked').length != expected) {
+			$('#dialog').next().find('button:contains("OK")').button('disable');
+		}
+		$('#dialog :checkbox').on('change', function() {
+			if ($('#dialog :checkbox:checked').length != expected) {
+				$('#dialog').next().find('button:contains("OK")').button('disable');
+			} else {
+				$('#dialog').next().find('button:contains("OK")').button('enable');
+			}
+		});
+	}
+
 	$("#dialog").dialog("open");
 
 
 }
 
-function inputPlayers() {
-
-	players = [];
-	var player;
-	var counter = 1;
-	var question = 'Please enter name of Player ' + counter;
-	while (player != "") {
-		var player = prompt(question);
-		if (player != null) {
-			players.push(player);
-			counter += 1;
-			question = 'Please enter name of Player ' + counter + '\nEnter blank when finished';
-		} else {
-			players = []
-			return;
-		}
-	}
-	if (counter == 2) {
-		return;
-	}
-	players.pop();
-
-}
 
 function createBlankArray() {
 
 	grid_array = [];
-	for (var k = 0; k < players.length; k++) {
+	cards = [];
+
+	for (var k = 0; k < game_settings.players.length; k++) {
 		num_positive_answers.push(0);
 		grid_array[k] = [];
-		for (var i = 0; i < cards.length; i++) {
+		for (var i = 0; i < card_names.length; i++) {
+			cards[i] = []
 			grid_array[k][i] = [];
-			for (var j = 0; j < cards[i].length; j++) {
+			for (var j = 0; j < card_names[i][1].length; j++) {
+				cards[i][j] = null;
 				grid_array[k][i][j] = null;
 			}
 		}
@@ -196,34 +291,41 @@ function createBlankArray() {
 function updateTable() {
 
 	// Iterate over players
-	var html = '<table id="grid" class="noselect">\n';
+	var html = '<table id="grid">\n';
 	html += '<tr>\n';
 	html += '<th class="cards" style="width:15%;">Cards</th>\n';
-	for (var i = 0; i < players.length; i++) {
-		if (i == me) {
-			html += '<th style="width:' + 85 / players.length + '%" class="yellow-text">' + players[i] + '</th>\n';
+	for (var i = 0; i < game_settings.players.length; i++) {
+		if (i == game_settings.me) {
+			html += '<th style="width:' + 85 / game_settings.players.length + '%" class="yellow-text">' + game_settings.players[i] + '</th>\n';
 		} else {
-			html += '<th style="width:' + 85 / players.length + '%">' + players[i] + '</th>\n';
+			html += '<th style="width:' + 85 / game_settings.players.length + '%">' + game_settings.players[i] + '</th>\n';
 		}
 	}
 	html += '</tr>\n';
 
-	// Iterate over cards
 	for (var i = 0; i < cards.length; i++) {
+
+		// Category names
 		html += '<tr class="header"><td class="cards">' + card_names[i][0] + '</td>\n';
-		for (var k = 0; k < players.length; k++ ){ html += '<td></td>\n'; }
+		for (var k = 0; k < game_settings.players.length; k++ ){ html += '<td></td>\n'; }
 		html += '</tr>\n';
 		for (var j = 0; j < cards[i].length; j++) {
+
+			// Row headers (card names)
 			if (cards[i][j] === null) {
 				html += '<tr><td class="cards">' + card_names[i][1][j] + '</td>';
 			} else if (cards[i][j] === false) {
 				html += '<tr><td class="empty-cards"></td>';
 			} else if (cards[i][j] === true) {
 				html += '<tr><td class="green cards">' + card_names[i][1][j] + '</td>';
+			} else if (cards[i][j] === 0) {
+				html += '<tr><td class="empty-cards">' + card_names[i][1][j] + '</td>';
 			} else {
 				html += '<tr><td class="missing-cards">' + card_names[i][1][j] + '</td>';
 			}
-			for (var k = 0; k < players.length; k++ ) {
+
+			// Table cells
+			for (var k = 0; k < game_settings.players.length; k++ ) {
 				if (grid_array[k][i][j] === null) {
 					html += '<td></td>';
 				} else if (grid_array[k][i][j] === false) {
@@ -243,80 +345,42 @@ function updateTable() {
 	
 }
 
-function selectMissingCards(selected) {
+// ########## SETUP FUNCTIONS ##########
 
-	for (var idx = 0; idx < selected.length; idx++) {
-		var i = selected[idx][0];
-		var j = selected[idx][1];
-		for (var k = 0; k < players.length; k++) {
-			grid_array[k][i][j] = false;
+function inputPlayers() {
+
+	game_settings.players = [];
+	var player;
+	var counter = 1;
+	var question = 'Please enter name of Player ' + counter;
+	while (player != "") {
+		var player = prompt(question);
+		if (player != null) {
+			game_settings.players.push(player);
+			counter += 1;
+			question = 'Please enter name of Player ' + counter + '\nEnter blank when finished';
+		} else {
+			game_settings.players = []
+			return;
 		}
-		cards[i][j] = "missing";
 	}
-
-	// Update table
-//	updateTable();
-
-	// Next
-	chooseStartingCards();
+	if (counter == 2) {
+		return;
+	}
+	game_settings.players.pop();
 
 }
 
-function selectStartingCards(selected) {
+function assignPlayer(i) {
 
-	// Calculate size of player's hand
+	return function() {
 
-	hand_size = 0;
+		game_settings.me = i;
 
-	// Record the cards I have (which nobody else has)
+		// Next
+		chooseStartingCards();
 
-	for (var idx = 0; idx < selected.length; idx++) {
-		var i = selected[idx][0];
-		var j = selected[idx][1];
-		for (var k = 0; k < players.length; k++) {
-			if (k == me) {
-				hand_size += 1;
-				grid_array[k][i][j] = true;
-			} else {
-				grid_array[k][i][j] = false;
-			}
-		}
-		cards[i][j] = false;
 	}
-
-	// Update my hand (I don't own any other cards)
-
-	applyPlayerLogic(me);
-
-	// Update the HTML table
-
-	updateTable();
-
-	// Next
-
-	var options = [];
-
-	for (var i = 0; i < players.length; i++) {
-		options.push([players[i], startingPlayer(i)]);
-	}
-
-	showOptionButtonsDialog('Choose player', 'Which player is starting?', 500, options);
-	
-
-}
-
-function chooseMissingCards() {
-
-	var options = [];
-
-	for (var i = 0; i < cards.length; i++) {
-		options[i] = [card_names[i][0], []]
-		for (var j = 0; j < cards[i].length; j++) {
-			options[i][1].push([card_names[i][1][j], [i,j]]);
-		}
-	}
-
-	showCheckboxDialog('Select any cards excluded from this game.', 800, selectMissingCards, options);
 
 }
 
@@ -327,9 +391,7 @@ function chooseStartingCards() {
 	for (var i = 0; i < cards.length; i++) {
 		options[i] = [card_names[i][0], []]
 		for (var j = 0; j < cards[i].length; j++) {
-			if (cards[i][j] !== "missing") {
-				options[i][1].push([card_names[i][1][j], [i,j]]);
-			}
+			options[i][1].push([card_names[i][1][j], [i,j]]);
 		}
 	}
 
@@ -337,44 +399,248 @@ function chooseStartingCards() {
 
 }
 
-function assignPlayer(i) {
+function selectStartingCards(selected) {
 
-	return function() {
-		me = i;
-		$('#dialog').dialog('destroy');
+	// Set starting cards as variable
+	game_settings.starting_cards = selected;
 
-		// Next
-		chooseMissingCards();
-	};
-
-}
-
-function startingPlayer(i) {
-
-	return function() {
-		current_player = i;
-		$('#dialog').dialog('destroy');
-		$('#dialog-container').html('');
-
-		// Update label
-		if (current_player == me) {
-			var label = 'Your round';
-		} else {
-			var label = players[current_player] + "'s round";
+	// Assign my cards to the grid array (do this in logic? - using false to not show selected cards when choosing missing cards)
+	for (var idx = 0; idx < game_settings.starting_cards.length; idx++) {
+		var i = game_settings.starting_cards[idx][0];
+		var j = game_settings.starting_cards[idx][1];
+		for (var k = 0; k < game_settings.players.length; k++) {
+			if (k == game_settings.me) {
+				// The cards I have
+				grid_array[k][i][j] = true;
+			} else {
+				// Nobody else has these
+				grid_array[k][i][j] = false;
+			}
 		}
-		$('#next-button').html(label);
+		cards[i][j] = false;
+	}
 
-		// Update table
-		updateTable();
-
-	};
+	// Next
+	choosePlayersHandSizes();
 
 }
+
+function choosePlayersHandSizes() {
+
+	var options = [];
+
+	var my_hand_size = game_settings.starting_cards.length;
+
+	for (var i = 0; i < game_settings.players.length; i++) {
+		options[i] = [game_settings.players[i], my_hand_size, 0, 9]
+	}
+
+	showSliderDialog('How many cards does each player have?', 500, selectPlayersHandSizes, options)
+
+}
+
+function selectPlayersHandSizes(selected) {
+
+	game_settings.hand_sizes = selected;
+
+	// Next
+
+	chooseMissingCards();
+
+}
+
+
+function chooseMissingCards() {
+
+	var num_missing_cards = num_cards - game_settings.hand_sizes.reduce((a, b) => a + b, 0);
+
+	if (num_missing_cards > 0) {
+
+		var options = [];
+
+		for (var i = 0; i < cards.length; i++) {
+			options[i] = [card_names[i][0], []]
+			for (var j = 0; j < cards[i].length; j++) {
+				if (cards[i][j] !== false) {
+					options[i][1].push([card_names[i][1][j], [i,j]]);
+				}
+			}
+		}
+
+		if (num_missing_cards == 1) {
+
+			var title = 'Select the one card excluded from this game.'
+
+		} else {
+
+			var title = 'Select the ' + num_missing_cards + ' cards excluded from this game.'
+
+		}
+
+		showCheckboxDialog(title, 800, selectMissingCards, options, num_missing_cards);
+
+	} else {
+
+		chooseStartingPlayer();
+
+	}
+
+
+}
+
+function selectMissingCards(selected) {
+
+	// Set missing cards as global variable
+
+	game_settings.missing_cards = selected;
+
+
+	// Remove missing cards from grid array (do this in logic?)
+
+	if (typeof(game_settings.missing_cards) !== "undefined") {
+
+		for (var idx = 0; idx < game_settings.missing_cards.length; idx++) {
+			var i = game_settings.missing_cards[idx][0];
+			var j = game_settings.missing_cards[idx][1];
+			for (var k = 0; k < game_settings.players.length; k++) {
+				grid_array[k][i][j] = false;
+			}
+			cards[i][j] = "missing";
+		}
+
+	}
+
+	// Next
+
+	chooseStartingPlayer();
+
+}
+
+function chooseStartingPlayer() {
+
+	var options = [];
+
+	for (var i = 0; i < game_settings.players.length; i++) {
+		options.push([game_settings.players[i], selectStartingPlayer(i)]);
+	}
+
+	showOptionButtonsDialog('Choose player', 'Which player is starting?', 500, options);
+
+}
+
+
+function selectStartingPlayer(i) {
+
+	return function() {
+
+		current_player = i;
+
+		initialiseGame();
+
+	}
+
+}
+
+function initialiseGame() {
+
+	clearDialog();
+
+	// Change next button functionality
+
+	newGame = false;
+
+	// Update next button label
+
+	if (current_player == game_settings.me) {
+		var label = 'Your round';
+	} else {
+		var label = game_settings.players[current_player] + "'s round";
+	}
+	$('#next-button').html(label);
+
+
+	// Create rounds table
+
+	var html = '<table id="rounds-table">';
+	html += '<tr>';
+	html += '<th style="width:25%;">Player</th>';
+	html += '<th style="width:25%;">Room</th>';
+	html += '<th style="width:25%;">Weapon</th>';
+	html += '<th style="width:25%;">Suspect</th>';
+	for (var i = 0; i < game_settings.players.length; i++) {
+		html += '<th>' + game_settings.players[i][0] + '</th>';
+	}
+	html += '</tr>';
+	html += '</table>';
+	$('#rounds-div').html(html);
+
+
+	// Update logic here?
+
+	applyPlayerLogic(game_settings.me);
+
+	// Update the HTML table
+
+	updateTable();
+
+	// Package game settings
+//	var json_game_settings = JSON.stringify(game_settings);
+
+
+	var settings_log = 'Game settings\n';
+	settings_log += '──────────────\n';
+	settings_log += ' Players:\n';
+
+	for (var i = 0; i < game_settings.players.length; i++) {
+		settings_log += '  ' + game_settings.players[i] + ' (' + game_settings.hand_sizes[i] + ' cards)\n';
+	}
+
+	settings_log += ' Me: ' + game_settings.players[game_settings.me] + '\n';
+
+	settings_log += ' My cards:\n';
+
+	for (var x = 0; x < game_settings.starting_cards.length; x++) {
+		var i = game_settings.starting_cards[x][0];
+		var j = game_settings.starting_cards[x][1];
+		settings_log += '  ' + card_names[i][1][j] + '\n';
+	}
+
+	settings_log += ' Missing cards:\n';
+
+	for (var x = 0; x < game_settings.missing_cards.length; x++) {
+		var i = game_settings.missing_cards[x][0];
+		var j = game_settings.missing_cards[x][1];
+		settings_log += '  ' + card_names[i][1][j] + '\n';
+	}
+
+	settings_log += '──────────────';
+
+	// Add game settings to log
+	outputToLog(settings_log);
+
+
+}
+
+
+function outputToLog(text) {
+
+	$('#log-div').append(text + '\n');
+	$('#log-div')[0].scrollTop = $('#log-div')[0].scrollHeight;
+
+}
+
+function outputRound(text) {
+
+	$('#rounds-table').append(text + '\n');
+	$('#rounds-table')[0].scrollTop = $('#rounds-table')[0].scrollHeight;		// doesn't seem to work
+
+}
+
+// ########## ROUND FUNCTIONS ##########
 
 function nextFunction() {
 
 	if (newGame == true) {
-		newGame = false;
 		startGame();
 		return;
 	}
@@ -385,22 +651,19 @@ function nextFunction() {
 
 function nextRound() {
 
-	$('#dialog').dialog('destroy');
-	$('#dialog-container').html('');
-
 	var options = [
 		['Moving on board', movingPiece()],
 		['Making a suggestion', makingSuggestion()]
 //		['Making an accusation', makingAccusation()]
 	];
 
-	if (current_player == me) {
+	if (current_player == game_settings.me) {
 
 		var message = 'What kind of round are you playing?';
 
 	} else {
 
-		var message = 'What kind of round is ' + players[current_player] + ' playing?';
+		var message = 'What kind of round is ' + game_settings.players[current_player] + ' playing?';
 
 	}
 
@@ -414,9 +677,6 @@ function movingPiece() {
 
 	return function() {
 
-		$('#dialog').dialog('destroy');
-		$('#dialog-container').html('');
-
 		nextPlayer();
 
 		nextRound();
@@ -429,9 +689,6 @@ function makingSuggestion() {
 
 	return function() {
 
-		$('#dialog').dialog('destroy');
-		$('#dialog-container').html('');
-
 		round = [];
 
 		var options = [];
@@ -443,13 +700,13 @@ function makingSuggestion() {
 			}
 		}
 
-		if (current_player == me) {
+		if (current_player == game_settings.me) {
 
 			var message = 'Which cards are you suggesting?';
 
 		} else {
 
-			var message = 'Which cards is ' + players[current_player] + ' suggesting?';
+			var message = 'Which cards is ' + game_settings.players[current_player] + ' suggesting?';
 
 		}
 
@@ -459,12 +716,9 @@ function makingSuggestion() {
 
 function suggestingCards(selected) {
 
-	$('#dialog').dialog('destroy');
-	$('#dialog-container').html('');
-
 	$.merge(round,[current_player, selected]);
 
-	askPlayer(selected, (current_player + 1) % players.length);
+	askPlayer(selected, (current_player + 1) % game_settings.players.length);
 
 }
 
@@ -477,8 +731,8 @@ function askPlayer(suggestion, asking_player) {
 			['No', playerShowedCard(suggestion, asking_player, false)]
 		];
 
-		var questioner = (current_player == me) ? 'you' : players[current_player];
-		showOptionButtonsDialog('Show card', 'Did ' + players[asking_player] + ' show ' + questioner + ' a card?', 500, options);
+		var questioner = (current_player == game_settings.me) ? 'you' : game_settings.players[current_player];
+		showOptionButtonsDialog('Show card', 'Did ' + game_settings.players[asking_player] + ' show ' + questioner + ' a card?', 500, options);
 
 	} else {
 
@@ -496,12 +750,10 @@ function playerShowedCard(suggestion, asking_player, answer) {
 
 	return function() {
 
-		$('#dialog').dialog('destroy');
-		$('#dialog-container').html('');
 
 		if (answer === true) {
 
-			if (current_player == me) {
+			if (current_player == game_settings.me) {
 
 				var options = [];
 
@@ -509,7 +761,7 @@ function playerShowedCard(suggestion, asking_player, answer) {
 					options.push([card_names[suggestion[i][0]][1][suggestion[i][1]], playerShowedMeCard(asking_player, suggestion[i])]);
 				}
 
-				showOptionButtonsDialog('Which card', 'Which card did ' + players[asking_player] + ' show you?', 500, options);
+				showOptionButtonsDialog('Which card', 'Which card did ' + game_settings.players[asking_player] + ' show you?', 500, options);
 
 			} else {
 
@@ -525,7 +777,7 @@ function playerShowedCard(suggestion, asking_player, answer) {
 
 			round.push(answer);
 
-			askPlayer(suggestion, (asking_player + 1) % players.length);
+			askPlayer(suggestion, (asking_player + 1) % game_settings.players.length);
 
 		}
 
@@ -536,9 +788,6 @@ function playerShowedCard(suggestion, asking_player, answer) {
 function playerShowedMeCard(asking_player, card) {
 
 	return function() {
-
-		$('#dialog').dialog('destroy');
-		$('#dialog-container').html('');
 
 		round.push(card);
 
@@ -552,13 +801,13 @@ function playerShowedMeCard(asking_player, card) {
 function nextPlayer() {
 
 	// Next player
-	current_player = (current_player + 1) % players.length;
+	current_player = (current_player + 1) % game_settings.players.length;
 
 	// Update label
-	if (current_player == me) {
+	if (current_player == game_settings.me) {
 		var label = 'Your round';
 	} else {
-		var label = players[current_player] + "'s round";
+		var label = game_settings.players[current_player] + "'s round";
 	}
 	$('#next-button').html(label);
 
@@ -566,14 +815,18 @@ function nextPlayer() {
 
 function addRound() {
 
+	clearDialog();
+
 	rounds.push(round);
+
+	printRoundToTable(round);
 
 	var questioner = round[0];
 	var suggestion = round[1];
 
 	for (var a = 0; a < round.length - 2; a++) {
 
-		var questioned = (questioner + 1 + a) % players.length;
+		var questioned = (questioner + 1 + a) % game_settings.players.length;
 		var answer = round[2 + a];
 
 		if (answer === true) {
@@ -611,7 +864,7 @@ function addRound() {
 
 				if (grid_array[questioned][i][j] === true) {
 
-					console.log(players[questioned] + ' seems to be lying about not having ' + card_names[i][1][j]);
+					outputToLog(game_settings.players[questioned] + ' seems to be lying about not having ' + card_names[i][1][j]);
 
 				}
 
@@ -641,11 +894,132 @@ function addRound() {
 
 }
 
+function printRoundToTable(round) {
+
+	var questioner = round[0];
+	var suggestion = round[1];
+
+	var row = [game_settings.players[questioner]]
+
+	for (var x = 0; x < suggestion.length; x++ ) {
+
+		var i = suggestion[x][0];
+		var j = suggestion[x][1];
+
+		row.push(card_names[i][1][j]);
+
+	}
+
+	for (var i = 0; i < game_settings.players.length; i++) {
+
+		row.push('');
+
+	}
+
+	row[4 + questioner] = '◆';
+
+	for (var a = 0; a < round.length - 2; a++) {
+
+		var questioned = (questioner + 1 + a) % game_settings.players.length;
+		var answer = round[2 + a];
+
+		if (answer == true) {
+
+			row[4 + questioned] = 'Y';
+
+		} else {
+
+			row[4 + questioned] = 'N';
+
+		}
+
+	}
+
+	var html = '<tr>';
+
+	for (var i = 0; i < row.length; i++) {
+
+		html += '<td>' + row[i] + '</td>';
+
+	}
+
+	html += '</tr>';
+
+	outputRound(html);
+
+}
+
+function applyLogic() {
+
+	// Apply logical deductions for each player
+
+	var changed_players;
+	var changed_cards;
+
+	var loop = true;
+
+	while (loop == true) {
+
+		changed_players = [];
+
+		for (var k = 1; k < game_settings.players.length; k++) {
+
+			var changed = applyPlayerLogic((game_settings.me + k) % game_settings.players.length);
+
+			if (changed == true) {
+
+				changed_players.push(k);
+
+			}
+
+		}
+
+		outputToLog('changed_players\n---------------');
+		outputToLog(changed_players);
+
+		changed_cards = [];
+
+		// Apply logical deductions for each card
+
+		for (var i = 0; i < cards.length; i++) {
+
+			for (var j = 0; j < cards[i].length; j++) {
+
+				var changed = applyCardLogic(i,j);
+
+				if (changed == true) {
+
+					changed_cards.push([i,j]);
+
+				}
+
+			}
+
+		}
+
+		outputToLog('changed_cards\n---------------');
+		outputToLog(changed_cards);
+
+//		if (changed_players == [] && changed_cards == []) {
+
+			loop = false;
+//
+//		} else {
+
+//			loop = true;
+
+//		}
+
+	}
+
+}
+
 function applyPlayerLogic(player) {
 
 
 	// Count number of player's known, unknown and positive answer cards
 
+	var player_col_before = JSON.stringify(grid_array[player]); // hacky!!
 	var known_count = 0;
 	var unknown_count = 0;
 	var positive_answers_count = new Array(num_positive_answers[player]).fill([]);
@@ -685,7 +1059,7 @@ function applyPlayerLogic(player) {
 
 	// We know all the player's cards
 
-	if (known_count == hand_size) {
+	if (known_count == game_settings.hand_sizes[player]) {
 
 		for (var i = 0; i < cards.length; i++) {
 
@@ -705,7 +1079,7 @@ function applyPlayerLogic(player) {
 
 	// We know all the cards the player does not have
 
-	} else if (unknown_count == cards.length - known_count) {
+	} else if (unknown_count == game_settings.hand_sizes[player] - known_count) {
 
 		for (var i = 0; i < cards.length; i++) {
 
@@ -717,13 +1091,13 @@ function applyPlayerLogic(player) {
 
 					grid_array[player][i][j] = true;
 
-					// which are not hidden
+					// which are not the hidden cards
 
 					cards[i][j] = false;
 
 					// and nobody else has them
 
-					for (var k = 0; k < players.length; k++) {
+					for (var k = 0; k < game_settings.players.length; k++) {
 
 						if (k != player) {
 
@@ -760,7 +1134,7 @@ function applyPlayerLogic(player) {
 
 			// and nobody else has it
 
-			for (var k = 0; k < players.length; k++) {
+			for (var k = 0; k < game_settings.players.length; k++) {
 
 				if (k != player) {
 
@@ -777,15 +1151,27 @@ function applyPlayerLogic(player) {
 	// Other checks?
 	// Check for non-overlapping positive answers (could potentially eliminate other cards)
 
+	var player_col_after = JSON.stringify(grid_array[player]);
+
+	if (player_col_before == player_col_after) {
+		return false;
+	} else {
+		return true;
+	}
+
 }
 
 function applyCardLogic(i,j) {
+
+	var card_row = grid_array.map(player => player[i][j]);
+	card_row.unshift(cards[i][j]);
+	var card_row_before = JSON.stringify(card_row);
 
 	// Count how many players don't have this card
 
 	var not_owned_count = 0;
 
-	for (var k = 0; k < players.length; k++) {
+	for (var k = 0; k < game_settings.players.length; k++) {
 
 		if (grid_array[k][i][j] === false) {
 
@@ -797,7 +1183,7 @@ function applyCardLogic(i,j) {
 
 	// The card is in the game and nobody has it
 
-	if (cards[i][j] === null && not_owned_count == players.length) {
+	if (cards[i][j] === null && not_owned_count == game_settings.players.length) {
 
 		// Must be one of the hidden cards
 
@@ -805,11 +1191,11 @@ function applyCardLogic(i,j) {
 
 	// The card is in the game, not one of the hidden cards and all but one players don't have it
 
-	} else if (cards[i][j] === false && not_owned_count == players.length - 1) {
+	} else if (cards[i][j] === false && not_owned_count == game_settings.players.length - 1) {
 
 		// The remaining player must have it
 
-		for (var k = 0; k < players.length; k++) {
+		for (var k = 0; k < game_settings.players.length; k++) {
 
 			if (grid_array[k][i][j] !== false) {
 
@@ -822,39 +1208,22 @@ function applyCardLogic(i,j) {
 
 	}
 
-}
+	card_row = grid_array.map(player => player[i][j]);
+	card_row.unshift(cards[i][j]);
+	var card_row_after = JSON.stringify(card_row);
 
-function applyLogic() {
-
-	// Apply logical deductions for each player
-
-	for (var k = 1; k < players.length; k++) {
-
-		applyPlayerLogic((me + k) % players.length);
-
+	if (card_row_before == card_row_after) {
+		return false;
+	} else {
+		return true;
 	}
 
-	// Apply logical deductions for each card
-
-	for (var i = 0; i < cards.length; i++) {
-
-		for (var j = 0; j < cards[i].length; j++) {
-
-			applyCardLogic(i,j);
-
-		}
-
-	}
 
 }
-
 
 function makingAccusation() {
 
 	return function() {
-
-		$('#dialog').dialog('destroy');
-		$('#dialog-container').html('');
 
 		var options = [];
 
@@ -865,7 +1234,7 @@ function makingAccusation() {
 			}
 		}
 
-		showRadioDialog('Which cards is ' + players[current_player] + ' suggesting?', 800, suggestingCards, options);
+		showRadioDialog('Which cards is ' + game_settings.players[current_player] + ' suggesting?', 800, suggestingCards, options);
 	}
 
 }
@@ -884,14 +1253,10 @@ function accusingCards(selected) {
 
 function startGame() {
 
-	// Play theme
-//	var audio = new Audio('theme.mp3');
-//	audio.play();
-
 	// Input players
 	inputPlayers();
 
-	if (players.length == 0) {
+	if (game_settings.players.length == 0) {
 		newGame = true;
 		return;
 	}
@@ -901,8 +1266,8 @@ function startGame() {
 
 	var options = [];
 
-	for (var i = 0; i < players.length; i++) {
-		options.push([players[i], assignPlayer(i)]);
+	for (var i = 0; i < game_settings.players.length; i++) {
+		options.push([game_settings.players[i], assignPlayer(i)]);
 	}
 
 	showOptionButtonsDialog('Choose player', 'Who are you?', 500, options);
@@ -919,11 +1284,25 @@ $(document).ready(function() {
 	$('#toggleInfo').button();
 	$('#toggleInfo').click(function() {
 		if ($('#toggleInfo')[0].checked == true) {
-			$('.right-div').css('display', 'block');
+			$('.right-div').css('display', 'flex');
 		} else {
 			$('.right-div').css('display', 'none');
 		}
 	});
+
+    var handle = $( "#custom-slider" );
+    $( "#slider" ).slider({
+      create: function() {
+        handle.text( $( this ).slider( "value" ) );
+      },
+      slide: function( event, ui ) {
+        handle.text( ui.value );
+      },
+		range: "min",
+		value: 4,
+		min: 1,
+		max: 9
+    });
 
 });
 

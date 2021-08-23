@@ -4,10 +4,9 @@
 		<title>Cluedo Solver</title>
 		<link rel="icon" type="image/png" href="favicon.png"/>
 		<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-<!--		<meta name="viewport" content="width=device-width, initial-scale=1">	-->
 		<link rel="stylesheet" type="text/css" href="css/styles.css">
 		<link rel="stylesheet" type="text/css" href="css/jquery-ui.min.css">
-		<script src="js/jquery-3.6.0.slim.min.js"></script>
+		<script src="js/jquery-3.6.0.min.js"></script>
 		<script src="js/jquery-ui.min.js"></script>
 		<script src="js/cluedo.js"></script>
 	</head>
@@ -19,7 +18,8 @@
 					Start
 				</button>
 			</div>
-<!--			<div class="bottom-div">
+<!--
+			<div class="bottom-div">
 				<label for="toggleInfo">Show info</label>
 				<input type="checkbox" id="toggleInfo"/>
 			</div>
@@ -30,7 +30,7 @@
 				<span class="first">C</span>L<span class="red">U</span>EDO <span class="first">S</span>OLVER
 			</div>
 		</div>
-		<div id="content-container">
+		<div id="content-container" class="noselect">
 			<div class="left-div">
 				<div id="grid-container">
 				</div>
@@ -41,12 +41,21 @@
 						<tr>
 							<th>Rounds</th>
 						</tr>
+						<tr>
+							<td id="rounds-cell">
+								<div id="rounds-div"></div>
+							</td>
 					</table>
 				</div>
 				<div id="log-container">
 					<table id="rounds">
 						<tr>
 							<th>Log</th>
+						</tr>
+						<tr>
+							<td id="log-cell">
+								<div id="log-div"></div>
+							</td>
 						</tr>
 					</table>
 				</div>
